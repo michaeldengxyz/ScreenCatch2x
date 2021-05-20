@@ -20,6 +20,7 @@ from io import BytesIO
 import win32clipboard
 
 from PIL import ImageGrab,Image,ImageTk,ImageFont,ImageDraw
+import base64
 #import pykeyboard
 #from pykeyboard import PyKeyboard
 from screeninfo import get_monitors
@@ -190,6 +191,7 @@ def PicCatch(IsCustomized=0,isEdit=0):
      
     try:
         DelayCheck()
+        StatusShow(1,auto_hide=1)
 
         err = None
         im  = None
@@ -288,19 +290,29 @@ def PicSave(im=None,err=None):
         WindX['Toplevel'].destroy()
         WindX['Toplevel'] = None
 
-def PicSaveToClipboard(im=None):
+def PicSaveToClipboard(im=None,p=None):
     if not im:
         return
     
     try:
-        output=BytesIO()
-        im.convert("RGB").save(output, "BMP")
-        data = output.getvalue()[14:]
-        output.close()
-
         win32clipboard.OpenClipboard() #打开剪贴板
         win32clipboard.EmptyClipboard()  #先清空剪贴板
-        win32clipboard.SetClipboardData(win32con.CF_DIB, data)  #将图片放入剪贴板
+
+        output=BytesIO()
+        if p=='base64':
+            im.save(output, format='JPEG')
+            byte_data = output.getvalue()
+            base64_str = "data:image/jpeg;base64," + re.sub(r'^b\'|\'+$','',str(base64.b64encode(byte_data)))
+            #print(base64_str)
+            win32clipboard.SetClipboardData(win32con.CF_UNICODETEXT, base64_str)  #将base64编码放入剪贴板
+            WindX['e_ImageCateched'].config(text="Copied image to Clipboard as base64 HTML5 format!",fg='green')
+        else:            
+            im.convert("RGB").save(output, "BMP")
+            data = output.getvalue()[14:]
+            output.close()
+            win32clipboard.SetClipboardData(win32con.CF_DIB, data)  #将图片放入剪贴板
+            WindX['e_ImageCateched'].config(text="Copied image to Clipboard!",fg='green')
+
         win32clipboard.CloseClipboard()
     except:
         print(traceback.format_exc()) 
@@ -443,6 +455,7 @@ def GIF_Make(sizes=[0, 0], xys=[0, 0], checkOnly=False):
         WindX['GIF_Frames'] = []        
         DisplayRecordArea(sizes, xys, color_index=0, isClosed=True)
         WindX['e_snip_gif'].config(fg='red')
+        StatusHide_Delay()
         return 1
 
     if checkOnly:
@@ -570,6 +583,7 @@ def DisplayRecordArea(sizes, xys, color_index=0, isClosed=False):
 def SetWindow(todo=None): 
     if todo == "snip_gif":
         if GIF_Make(checkOnly=True):
+            StatusShow(1)
             return
 
     DelayCheck()
@@ -577,6 +591,7 @@ def SetWindow(todo=None):
     WindX['main'].update()
        
     try:        
+        StatusShow(1, auto_hide=1)
         ShowMainWindow(0)   
         im,err = ScreenShotXY(width =int(WindX['Displays']['FullScreenSize'][0]),
                             height=int(WindX['Displays']['FullScreenSize'][1]),
@@ -787,15 +802,19 @@ class TopCanvas:
 
             cButton(self,'Save',self.Save,          [406, 0, 486, 40,'#E0E0E0',"#E0E0E0",1],[446, 20,'blue',("Arial",20,"normal")])
 
-            cButton(self,'Copy',self.Copy2Clipboard,[487, 0, 567, 40,'#E0E0E0',"#E0E0E0",1],[527, 20,'blue',("Arial",20,"normal")])
+            cButton(self,'Copy',  self.Copy2Clipboard,[487, 0, 567, 40,'#E0E0E0',"#E0E0E0",1],[527, 20,'blue',("Arial",20,"normal")])
+
+            cButton(self,'Base64',self.Copy2ClipboardBase64,[568, 0, 648, 40,'#E0E0E0',"#E0E0E0",1],[608, 20,'blue',("Arial",15,"normal")])
 
         self.top.mainloop()
 
     def TDBX(self,event):
         return 0
 
-    def Copy2Clipboard(self,event):
-        
+    def Copy2ClipboardBase64(self,event):
+        self.Copy2Clipboard(event,p='base64')
+
+    def Copy2Clipboard(self,event,p=''):        
         try:             
             HWND = self.canvas.winfo_id()
             rect = win32gui.GetWindowRect(HWND)  #left top right bottom   l, t, r, b
@@ -808,7 +827,7 @@ class TopCanvas:
             )
             ShowMainWindow(1)
             if isinstance(im, Image.Image):                    
-                PicSaveToClipboard(im=im)
+                PicSaveToClipboard(im=im,p=p)
             else:
                 print("Failed to get screenshot!")
                 WindX['e_ImageCateched'].config(text="Failed to get screenshot!",fg='red')               
@@ -1194,15 +1213,30 @@ def ShowHideBasic():
         WindX['e_HideBase'].config(text="∨")
         WinAnchor()
         WindX['main'].overrideredirect(1)
+        StatusShow(0)
     else:
         WindX['ShowHideBasic'] = 1
         WindX['Frame1'].grid()
         WindX['e_HideBase'].config(text="∧")
         WindX['main'].overrideredirect(0)
+        StatusShow(1)
 
 def WinAnchor():
     gs = re.split(r'x|\+', WindX['main'].geometry()) #506x152+-1418+224
     WindX['main'].geometry('+'+ str(gs[2]) +'+0')
+
+def StatusShow(display=1,auto_hide=0):
+    if display:
+        WindX['e_ImageCateched'].grid()
+        if auto_hide:
+            t1 = threading.Timer(1, StatusHide_Delay)
+            t1.start() 
+    else:
+        WindX['e_ImageCateched'].grid_remove()
+
+def StatusHide_Delay():
+    time.sleep(30)
+    StatusShow(0)
 
 def ShowMainWindow(toShow):
     if toShow:
