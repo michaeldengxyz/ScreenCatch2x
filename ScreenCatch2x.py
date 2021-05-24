@@ -676,12 +676,21 @@ class cButton:
         obj.buttons.append(self.button_bg)
 
         if text:
-            self.button_txt = self.canvas.create_text(ts[0],ts[1],text=text,fill=ts[2],font=ts[3])             
+            text1 = text[0:1]
+            self.button_txt = self.canvas.create_text(ts[0],ts[1],text=text1,fill=ts[2],font=ts[3])             
             self.canvas.tag_bind(self.button_txt,"<Button-1>", cmd)
             self.canvas.tag_bind(self.button_txt, "<Motion>", self.cMotion)
             self.canvas.tag_bind(self.button_txt, "<Leave>", self.cLeave)
             obj.buttons.append(self.button_txt)
 
+            if len(text ) > 1:
+                #A point (pt) is equal to 0.352778 millimeters, 0.0138889 inches, or 1.333 pixels
+                fsize = 8
+                self.button_txt2 = self.canvas.create_text(ts[0],int(ts[1]+ (ts[3][1] + fsize)*1.333/2),text=text,fill=ts[2],font=("Arial",fsize))             
+                self.canvas.tag_bind(self.button_txt2,"<Button-1>", cmd)
+                self.canvas.tag_bind(self.button_txt2, "<Motion>", self.cMotion)
+                self.canvas.tag_bind(self.button_txt2, "<Leave>", self.cLeave)
+                obj.buttons.append(self.button_txt2)
 
     def cMotion(self,event):
         self.canvas.itemconfig(self.button_bg,outline='red')
@@ -730,14 +739,19 @@ class TopCanvas:
         #print('new: Toplevel=',WindX['Toplevel']) 
         print('\nnew toplevel size, x,y:',sizes, xys)
         self.top.wm_attributes('-topmost',1) 
+        
+        wind_width = sizes[0]
+        if self.todo == 'edit' and wind_width < 9*42:   
+            wind_width = 9*42
+
         if not titleOn:
-            self.top.overrideredirect(1)
-            self.top.geometry(str(sizes[0]) + 'x' + str(sizes[1]) + '+' + str(xys[0]) + '+' + str(xys[1]))
+            self.top.overrideredirect(1)                
+            self.top.geometry(str(wind_width) + 'x' + str(sizes[1]) + '+' + str(xys[0]) + '+' + str(xys[1]))
         else:
             self.top.geometry('+' + str(xys[0]) + '+' + str(xys[1]))            
 
         self.canvas=Canvas(self.top,
-                    width=sizes[0],
+                    width=wind_width,
                     height=sizes[1] + self.canvas_height_offset,
                     bg="white",
                     relief=FLAT,
@@ -757,7 +771,7 @@ class TopCanvas:
             #print("canvas.create_image:",((sizes[0] - xys[0])/2,(sizes[1] - xys[1])/2,im.size),', sizes=',sizes,', xys=',xys)
             imk = ImageTk.PhotoImage(im)             
             #self.canvas.create_image((sizes[0] - xys[0])/2,(sizes[1] - xys[1])/2,image = imk) 
-            self.canvas.create_image(int(sizes[0]/2),int(sizes[1]/2 + self.canvas_height_offset),image = imk)
+            self.canvas_image = self.canvas.create_image(int(sizes[0]/2),int(sizes[1]/2 + self.canvas_height_offset),image = imk)
 
         #cButton(self,'',self.TDBX,  [0, 0, 480, 40,'#FEFEFE',"#FEFEFE",1],[30, 30,'red',("Arial",20,"bold")])
         cButton(self,'X',self.Close,[0, 0, 40, 40,'#E0E0E0',"#E0E0E0" ,1],[20, 20,'red',("Arial",20,"bold")])
@@ -787,40 +801,56 @@ class TopCanvas:
             cButton(self,'',self.OutLineColor2,[61, 0, 81, 20,'green',"green",1])
             cButton(self,'',self.OutLineColor3,[41, 20, 61, 40,'black',"black",1])
             cButton(self,'',self.OutLineColor4,[61, 20, 81, 40,'yellow',"yellow",1])
-
-            cb = cButton(self,'Rect',self.AddRectangle,[82, 0, 162, 40,'#00CC99',"#E0E0E0",1],[122, 20,'blue',("Arial",20,"normal")])
+            
+            fsize = 20
+            ftop = int(fsize*1.33 /2 + 2)
+            px = 82
+            cb = cButton(self,'Rect',self.AddRectangle,[px, 0, px+40, 40,'#00CC99',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")])
             self.button_rect_bg  = cb.button_bg
 
-            cb = cButton(self,'Line',self.AddLine,  [163, 0, 243, 40,'#E0E0E0',"#E0E0E0",1],[203, 20,'blue',("Arial",20,"normal")])
+            px += 41
+            cb = cButton(self,'Line',self.AddLine,  [px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")])
             self.button_addLine_bg  = cb.button_bg
 
-            cb = cButton(self,'Text',self.AddText,  [244, 0, 324, 40,'#E0E0E0',"#E0E0E0",1],[284, 20,'blue',("Arial",20,"normal")])
+            px += 41
+            cb = cButton(self,'Text',self.AddText,  [px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")])
             self.button_addText_bg  = cb.button_bg
 
-            cb = cButton(self,'Undo',self.Undo,     [325, 0, 405, 40,'#E0E0E0',"#E0E0E0",1],[365, 20,'gray',("Arial",20,"normal")])
+            px += 41
+            cb = cButton(self,'Undo',self.Undo,     [px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'gray',("Arial",fsize,"normal")])
             self.button_delLast_txt = cb.button_txt 
 
-            cButton(self,'Save',self.Save,          [406, 0, 486, 40,'#E0E0E0',"#E0E0E0",1],[446, 20,'blue',("Arial",20,"normal")])
+            px += 41
+            cButton(self,'Save',self.Save,          [px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")])
 
-            cButton(self,'Copy',  self.Copy2Clipboard,[487, 0, 567, 40,'#E0E0E0',"#E0E0E0",1],[527, 20,'blue',("Arial",20,"normal")])
+            px += 41
+            cButton(self,'Copy',  self.Copy2Clipboard,[px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")])
 
-            cButton(self,'Base64',self.Copy2ClipboardBase64,[568, 0, 648, 40,'#E0E0E0',"#E0E0E0",1],[608, 20,'blue',("Arial",15,"normal")])
+            px += 41
+            cButton(self,'Base64',self.Copy2ClipboardBase64,[px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")])
 
         self.top.mainloop()
 
     def TDBX(self,event):
         return 0
 
+    def canvas_show_buttons(self, istate='normal'):
+        for b in self.buttons:
+            self.canvas.itemconfigure(b, state=istate)
+        self.top.update()
+
     def Copy2ClipboardBase64(self,event):
         self.Copy2Clipboard(event,p='base64')
 
     def Copy2Clipboard(self,event,p=''):        
-        try:             
+        try:   
+            self.canvas_show_buttons('hidden')
+
             HWND = self.canvas.winfo_id()
             rect = win32gui.GetWindowRect(HWND)  #left top right bottom   l, t, r, b
             ShowMainWindow(0)
             im,err = ScreenShotXY(
-                width =int(rect[2] - rect[0]),
+                width = self.sizes[0], #int(rect[2] - rect[0]),
                 height=int(rect[3] - rect[1] - self.canvas_height_offset),
                 xSrc  =int(rect[0]),
                 ySrc  =int(rect[1] + self.canvas_height_offset)
@@ -832,7 +862,9 @@ class TopCanvas:
                 print("Failed to get screenshot!")
                 WindX['e_ImageCateched'].config(text="Failed to get screenshot!",fg='red')               
         except:
-            print(traceback.format_exc())                                       
+            print(traceback.format_exc()) 
+
+        self.canvas_show_buttons('normal')
 
     def Save(self,event):
         if self.todo == 'edit':
@@ -846,7 +878,7 @@ class TopCanvas:
                     rect = win32gui.GetWindowRect(HWND)  #left top right bottom   l, t, r, b
                     ShowMainWindow(0)
                     im,err = ScreenShotXY(
-                        width =int(rect[2] - rect[0]),
+                        width =self.sizes[0], #int(rect[2] - rect[0]),
                         height=int(rect[3] - rect[1] - self.canvas_height_offset),
                         xSrc  =int(rect[0]),
                         ySrc  =int(rect[1] + self.canvas_height_offset)
@@ -855,8 +887,8 @@ class TopCanvas:
                     if isinstance(im, Image.Image):                    
                         GetPara(0)
                         imCopy = im.copy()
-                        PicSave(im=im)
-                        PicSaveToClipboard(im=imCopy)      
+                        PicSaveToClipboard(im=imCopy)
+                        PicSave(im=im)                           
                     else:
                         print("Failed to get screenshot!")
                         WindX['e_ImageCateched'].config(text="Failed to get screenshot!",fg='red')
