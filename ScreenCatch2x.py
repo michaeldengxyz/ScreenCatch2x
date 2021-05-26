@@ -314,6 +314,7 @@ def PicSaveToClipboard(im=None,p=None):
             WindX['e_ImageCateched'].config(text="Copied image to Clipboard!",fg='green')
 
         win32clipboard.CloseClipboard()
+        StatusShow(1, auto_hide=1)
     except:
         print(traceback.format_exc()) 
 
@@ -683,10 +684,10 @@ class cButton:
             self.canvas.tag_bind(self.button_txt, "<Leave>", self.cLeave)
             obj.buttons.append(self.button_txt)
 
-            if len(text ) > 1:
+            if len(text) > 1:
                 #A point (pt) is equal to 0.352778 millimeters, 0.0138889 inches, or 1.333 pixels
                 fsize = 8
-                self.button_txt2 = self.canvas.create_text(ts[0],int(ts[1]+ (ts[3][1] + fsize)*1.333/2),text=text,fill=ts[2],font=("Arial",fsize))             
+                self.button_txt2 = self.canvas.create_text(ts[0],int(ts[1]+ (ts[3][1] + fsize)*1.333/2),text=text[1:],fill=ts[2],font=("Arial",fsize))             
                 self.canvas.tag_bind(self.button_txt2,"<Button-1>", cmd)
                 self.canvas.tag_bind(self.button_txt2, "<Motion>", self.cMotion)
                 self.canvas.tag_bind(self.button_txt2, "<Leave>", self.cLeave)
@@ -720,6 +721,7 @@ class TopCanvas:
         self.tmp_addedtexts = []
         self.topTempTextMousePoints = []
         self.canvas_height_offset = 0
+        self.topInputTextFontSize = 15
 
         if titleOn:
             self.canvas_height_offset = 41
@@ -774,7 +776,9 @@ class TopCanvas:
             self.canvas_image = self.canvas.create_image(int(sizes[0]/2),int(sizes[1]/2 + self.canvas_height_offset),image = imk)
 
         #cButton(self,'',self.TDBX,  [0, 0, 480, 40,'#FEFEFE',"#FEFEFE",1],[30, 30,'red',("Arial",20,"bold")])
-        cButton(self,'X',self.Close,[0, 0, 40, 40,'#E0E0E0',"#E0E0E0" ,1],[20, 20,'red',("Arial",20,"bold")])
+        fsize = 20
+        ftop = int(fsize*1.33 /2 + 2)
+        cButton(self,'XClose',self.Close,[0, 0, 40, 40,'#E0E0E0',"#E0E0E0" ,1],[20, ftop,'red',("Arial",20,"bold")])
 
         self.is_draw_rectangle = 1
         self.is_draw_addText = 0
@@ -802,32 +806,30 @@ class TopCanvas:
             cButton(self,'',self.OutLineColor3,[41, 20, 61, 40,'black',"black",1])
             cButton(self,'',self.OutLineColor4,[61, 20, 81, 40,'yellow',"yellow",1])
             
-            fsize = 20
-            ftop = int(fsize*1.33 /2 + 2)
             px = 82
-            cb = cButton(self,'Rect',self.AddRectangle,[px, 0, px+40, 40,'#00CC99',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")])
+            cb = cButton(self,'RRect',self.AddRectangle,[px, 0, px+40, 40,'#00CC99',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")])
             self.button_rect_bg  = cb.button_bg
 
             px += 41
-            cb = cButton(self,'Line',self.AddLine,  [px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")])
+            cb = cButton(self,'LLine',self.AddLine,  [px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")])
             self.button_addLine_bg  = cb.button_bg
 
             px += 41
-            cb = cButton(self,'Text',self.AddText,  [px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")])
+            cb = cButton(self,'TText',self.AddText,  [px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")])
             self.button_addText_bg  = cb.button_bg
 
             px += 41
-            cb = cButton(self,'Undo',self.Undo,     [px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'gray',("Arial",fsize,"normal")])
+            cb = cButton(self,'UUndo',self.Undo,     [px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'gray',("Arial",fsize,"normal")])
             self.button_delLast_txt = cb.button_txt 
 
             px += 41
-            cButton(self,'Save',self.Save,          [px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")])
+            cButton(self,'SSave',self.Save,          [px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")])
 
             px += 41
-            cButton(self,'Copy',  self.Copy2Clipboard,[px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")])
+            cButton(self,'CCopy',  self.Copy2Clipboard,[px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")])
 
             px += 41
-            cButton(self,'Base64',self.Copy2ClipboardBase64,[px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")])
+            cButton(self,'BBase64',self.Copy2ClipboardBase64,[px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")])
 
         self.top.mainloop()
 
@@ -966,6 +968,9 @@ class TopCanvas:
 
     def TextInputView(self,event):
         if self.topTempText:
+            if event.keycode == 17:
+                self.topInputTextCtrlPress = 0
+
             inputText = re.sub(r'\n+$','',self.topTempTextWedget.get("0.0", "end"))
             if len(self.tmp_addedtexts):
                 for xt in self.tmp_addedtexts:
@@ -975,8 +980,9 @@ class TopCanvas:
             if len(inputText):
                 if self.is_draw_addText and self.rectangle:
                     lines = re.split(r'\n', inputText)
-                    lineH = int(abs(self.topTempTextMousePoints[3] - self.topTempTextMousePoints[1] - 3*(len(lines) + 1)) / len(lines))             
-                    fsize = int(lineH / 1.33)  #A point (pt) is equal to 0.352778 millimeters, 0.0138889 inches, or 1.333 pixels
+                    lineH = int(self.topInputTextFontSize*1.33 + 3) #int(abs(self.topTempTextMousePoints[3] - self.topTempTextMousePoints[1] - 3*(len(lines) + 1)) / len(lines))             
+                    fsize = self.topInputTextFontSize #int(lineH / 1.33)  #A point (pt) is equal to 0.352778 millimeters, 0.0138889 inches, or 1.333 pixels
+                    
                     if fsize > 1:
                         y = self.topTempTextMousePoints[1] + lineH/2 + 3
                         for line in lines:  
@@ -991,8 +997,29 @@ class TopCanvas:
                                         anchor = W,
                                         justify = LEFT)
                             self.tmp_addedtexts.append(textbox)
+
+                            rect = win32gui.GetWindowRect(self.topTempTextOnBottom_xyz[2])  #left top right bottom   l, t, r, b
+                            if self.topTempTextOnBottom and (rect[1] + y + lineH/2 + 3 > self.topTempTextOnBottom_xyz[1]):
+                                self.topTempTextOnBottom_xyz[1] = int(rect[1] + y + lineH/2 + 3)
+                                self.topTempText.geometry('+' + str(self.topTempTextOnBottom_xyz[0]) + '+' + str(self.topTempTextOnBottom_xyz[1]))
+                                
                             y += lineH + 3
                     self.top.update()
+
+    def TextInputViewKeyPress(self,event):        
+        if event.keycode == 17:
+            self.topInputTextCtrlPress = 1
+        elif self.topInputTextCtrlPress and event.keycode==38:
+            self.topInputTextFontSize +=1
+        elif self.topInputTextCtrlPress and event.keycode==40:
+            self.topInputTextFontSize -=1
+
+        if self.topInputTextFontSize < 2:
+            self.topInputTextFontSize = 2
+
+        fontStyle = tkFont.Font(family='Arial', size= self.topInputTextFontSize)
+        self.topTempTextWedget.configure(font=fontStyle)
+        #print(self.topInputTextFontSize, event.keycode)
 
     def MouseUp(self,event):
         if self.text_box:
@@ -1029,21 +1056,27 @@ class TopCanvas:
                     HWND = self.canvas.winfo_id()
                     rect = win32gui.GetWindowRect(HWND)  #left top right bottom   l, t, r, b
 
+                    self.topTempTextOnBottom = 1
                     x = rect[0] + mm['xmin'] + 1
                     y = rect[1] + mm['ymin'] + 1 + th
                     if y + th*2 > rect[3]:
-                        y = rect[1] + mm['ymin'] - th*2 - 1
+                        y = rect[1] + mm['ymin'] - th - 1
+                        self.topTempTextOnBottom = 0
 
                     self.topTempText = Toplevel()
                     self.topTempText.wm_attributes('-topmost',1) 
                     self.topTempText.overrideredirect(1)
-                    self.topTempText.geometry(str(tw) + 'x' + str(th*2) + '+' + str(x) + '+' + str(y))
+                    self.topTempText.geometry(str(tw) + 'x' + str(th) + '+' + str(x) + '+' + str(y))
+                    self.topTempTextOnBottom_xyz = [x,y,HWND]
+
+                    self.topInputTextCtrlPress = 0
                     fontStyle = tkFont.Font(family='Arial', size=15)
-                    self.topTempTextWedget = Text(self.topTempText, padx=5, pady=5, font=fontStyle, fg=self.outline_color)
-                    self.topTempTextWedget.pack(side=TOP, fill=BOTH)
+                    self.topTempTextWedget = Text(self.topTempText, padx=5, pady=5, font=fontStyle, fg=self.outline_color, bd=1, highlightcolor='#D0D0D0', relief=FLAT)
+                    self.topTempTextWedget.pack(side=TOP, fill=BOTH, expand=True, padx=1, pady=1)
                     self.topTempTextWedget.focus()
-                    self.topTempTextWedget.bind('<KeyRelease>',self.TextInputView)
-                                        
+                    self.topTempTextWedget.bind('<KeyRelease>',self.TextInputView)                     
+                    self.topTempTextWedget.bind('<KeyPress>',self.TextInputViewKeyPress)                     
+                    WindX['winBalloon'].bind_widget(self.topTempTextWedget, balloonmsg= "[Ctrl + UpArrow] keys to enlarge font size,\n[Ctrl + DownArrow] keys to reduce font size")                 
 
             elif self.is_draw_line and self.rectangle and self.drawn_line:
                 self.canvas.delete(self.rectangle)
@@ -1077,8 +1110,8 @@ class TopCanvas:
             if len(inputText):
                 if self.is_draw_addText and self.rectangle:
                     lines = re.split(r'\n', inputText)  
-                    lineH = int(abs(self.topTempTextMousePoints[3] - self.topTempTextMousePoints[1] - 3*(len(lines) + 1)) / len(lines))             
-                    fsize = int(lineH / 1.33)  #A point (pt) is equal to 0.352778 millimeters, 0.0138889 inches, or 1.333 pixels
+                    lineH = int(self.topInputTextFontSize*1.33 + 3) #int(abs(self.topTempTextMousePoints[3] - self.topTempTextMousePoints[1] - 3*(len(lines) + 1)) / len(lines))             
+                    fsize = self.topInputTextFontSize #int(lineH / 1.33)  #A point (pt) is equal to 0.352778 millimeters, 0.0138889 inches, or 1.333 pixels
                     if fsize > 1:
                         y = self.topTempTextMousePoints[1] + lineH/2 + 3
                         for line in lines:  
