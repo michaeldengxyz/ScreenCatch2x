@@ -1,5 +1,6 @@
 #Pyhton 3.x
 # -*- coding: UTF-8 -*-
+#rev.1.0.0.0
 
 import time 
 import traceback
@@ -285,10 +286,7 @@ def PicSave(im=None,err=None):
         WindX['ImageOrderLastSub'] -=1
     
     #delete Toplevel when it's catched and edited.
-    if WindX['Toplevel']:
-        print('close: Toplevel=',WindX['Toplevel'])
-        WindX['Toplevel'].destroy()
-        WindX['Toplevel'] = None
+    Close_TopLevels()
 
 def PicSaveToClipboard(im=None,p=None):
     if not im:
@@ -337,10 +335,19 @@ def NextPicOrder(x=1):
 def PreviousPicOrder():
     NextPicOrder(-1)
 
-def WindExit():              
+def Close_TopLevels():
+    if len(WindX['Toplevels']):
+        for tl in WindX['Toplevels']:
+            print('close: Toplevel=',tl)
+            tl.destroy()
+        WindX['Toplevels'] = []
+
+def WindExit():   
+    Close_TopLevels()
     WindX['main'].destroy()  
     os._exit(0)
     #sys.exit(0)  # This will cause the window error: Python has stopped working ...
+
 def DelayCheck():
     WindX['DelayStr'] = re.sub(r'.*[^0-9]+','',WindXX['e_Delay'].get())
     if WindX['DelayStr'] and int(WindX['DelayStr']) > 0:
@@ -364,97 +371,106 @@ def GIF_File_Optimize(filep):
         print(traceback.format_exc())
 
 def GIF_Make(sizes=[0, 0], xys=[0, 0], checkOnly=False):
-
+    StatusShow(1)
+    Close_TopLevels()
     if WindX['GIF_recording'] and len(WindX['GIF_Frames']): #save GIF, reset
         WindX['GIF_recording'] = False
-        time.sleep(2/int(WindX['GIF_FPS_Str']))
-        nn = len(WindX['GIF_Frames'])
+        DisplayRecordArea(sizes, xys, color_index=0, isClosed=True)
+        result = messagebox.askyesno("Confirm","Do you want to save the GIF (total " + str(len(WindX['GIF_Frames'])) + " frames)?")
+        if result:
+            time.sleep(2/int(WindX['GIF_FPS_Str']))
+            nn = len(WindX['GIF_Frames'])
 
-        filep = PicSaveFile("gif","." + str(nn))
-        if not filep:
-            filep = PicSaveFile("gif")
+            filep = PicSaveFile("gif","." + str(nn))
+            if not filep:
+                filep = PicSaveFile("gif")
 
-        if filep:
-            try:
-                WindX['e_ImageCateched'].config(text="saving: " + os.path.basename(filep) + " ... ...",fg='#009900')
-                WindX['main'].update()
-
-                images = []
-                n = 0 
-                font_end = None 
-                font_type = None    
+            if filep:
                 try:
-                    font_end = ImageFont.truetype(font='C:/Windows/Fonts/Arial.ttf',size=80) 
-                    font_type = ImageFont.truetype(font='C:/Windows/Fonts/Arial.ttf',size=20) 
+                    WindX['e_ImageCateched'].config(text="saving: " + os.path.basename(filep) + " ... ...",fg='#009900')
+                    WindX['main'].update()
+
+                    images = []
+                    n = 0 
+                    font_end = None 
+                    font_type = None    
+                    try:
+                        font_end = ImageFont.truetype(font='C:/Windows/Fonts/Arial.ttf',size=80) 
+                        font_type = ImageFont.truetype(font='C:/Windows/Fonts/Arial.ttf',size=20) 
+                    except:
+                        print(traceback.format_exc())
+
+                    for imp in WindX['GIF_Frames']:
+                        n +=1
+                        draw = ImageDraw.Draw(imp[0])
+                        draw.text((0,0), re.sub(r'^00\:',"",imp[1]) + " #" + str(n) + "/" + str(nn), fill = (255, 0 ,0), font=font_type)
+                        if n == nn-1 or n == nn:
+                            isize = imp[0].size
+                            x = int(isize[0]/2 - 100)
+                            if x < 10:
+                                x = 10
+                            draw.text((x,int(isize[1]/2 - 80)), '--- GIF END --- ',  fill = (255, 0 ,0), font=font_end)
+                        elif n==1 or n==2:
+                            isize = imp[0].size
+                            x = int(isize[0]/2 - 100)
+                            if x < 10:
+                                x = 10
+                            draw.text((x,int(isize[1]/2 - 80)), '--- GIF START --- ', fill = (255, 0 ,0), font=font_end)
+
+                        if len(imp[2]):
+                            dx = 10                     
+                            for p in imp[2]:
+                                xy = [p[0]-dx, p[1]-dx, p[0]+dx, p[1]+dx]
+                                xy0 = [p[0]-1, p[1]-1, p[0]+1, p[1]+1]
+                                draw.ellipse(xy0,fill=None,outline='red',width=1)
+                                draw.arc(xy,0,90,   fill='red',     width=4)
+                                draw.arc(xy,90,180, fill='#FFA500', width=4)
+                                draw.arc(xy,180,270,fill='blue',    width=4)
+                                draw.arc(xy,270,360,fill='green',   width=4)
+
+                                dx = dx*2
+                                xy1 = [p[0]-dx, p[1]-dx, p[0]+dx, p[1]+dx]
+                                draw.ellipse(xy1,fill=None, outline='red',width=1)
+
+
+                        if len(imp[3]):
+                            dx = 1                    
+                            for p in imp[3]:
+                                xy = [p[0]-dx, p[1]-dx, p[0]+dx, p[1]+dx]
+                                draw.ellipse(xy,fill=None,outline='red',width=1)        
+
+                        img = imp[0].convert("RGB")   # 通过convert将RGBA格式转化为RGB格式，以便后续处理 
+                        #print("img.size=",img.size)
+                        img = numpy.array(img)        # im还不是数组格式，通过此方法将img转化为数组
+                        images.append(img) 
+
+                    imageio.mimsave(filep, images, 'GIF', duration=2/int(WindX['GIF_FPS_Str']))
+                    StatusShow(1)
+
+                    #verify image file
+                    if os.path.exists(filep):
+                        print("optimize: ", filep)
+                        WindX['e_ImageCateched'].config(text="optimizing: " + os.path.basename(filep) + " ... ...",fg='#009900')
+                        WindX['main'].update()                    
+                        GIF_File_Optimize(filep)
+
+                        if os.path.exists(filep + ".o.gif"):
+                            os.unlink(filep)
+                            WindX['e_ImageCateched'].config(text= "Saved: " + os.path.basename(filep + ".o.gif"),fg='#009900')
+                        else:
+                            WindX['e_ImageCateched'].config(text= "Saved: " + os.path.basename(filep),fg='#009900')                    
+                    else:
+                        WindX['e_ImageCateched'].config(text="Failed to save image!",fg='red')
+                        WindX['ImageOrderLastSub'] -=1
                 except:
                     print(traceback.format_exc())
 
-                for imp in WindX['GIF_Frames']:
-                    n +=1
-                    draw = ImageDraw.Draw(imp[0])
-                    draw.text((0,0), re.sub(r'^00\:',"",imp[1]) + " #" + str(n) + "/" + str(nn), fill = (255, 0 ,0), font=font_type)
-                    if n == nn-1 or n == nn:
-                        isize = imp[0].size
-                        x = int(isize[0]/2 - 100)
-                        if x < 10:
-                            x = 10
-                        draw.text((x,int(isize[1]/2 - 80)), '--- END --- ',  fill = (255, 0 ,0), font=font_end)
-                    elif n==1 or n==2:
-                        isize = imp[0].size
-                        x = int(isize[0]/2 - 100)
-                        if x < 10:
-                            x = 10
-                        draw.text((x,int(isize[1]/2 - 80)), '--- START --- ', fill = (255, 0 ,0), font=font_end)
+        else:
+            StatusShow(1)
+            WindX['e_ImageCateched'].config(text="Not save the GIF!",fg='#009900')
+            WindX['main'].update()
 
-                    if len(imp[2]):
-                        dx = 10                     
-                        for p in imp[2]:
-                            xy = [p[0]-dx, p[1]-dx, p[0]+dx, p[1]+dx]
-                            xy0 = [p[0]-1, p[1]-1, p[0]+1, p[1]+1]
-                            draw.ellipse(xy0,fill=None,outline='red',width=1)
-                            draw.arc(xy,0,90,   fill='red',     width=4)
-                            draw.arc(xy,90,180, fill='#FFA500', width=4)
-                            draw.arc(xy,180,270,fill='blue',    width=4)
-                            draw.arc(xy,270,360,fill='green',   width=4)
-
-                            dx = dx*2
-                            xy1 = [p[0]-dx, p[1]-dx, p[0]+dx, p[1]+dx]
-                            draw.ellipse(xy1,fill=None, outline='red',width=1)
-
-
-                    if len(imp[3]):
-                        dx = 1                    
-                        for p in imp[3]:
-                            xy = [p[0]-dx, p[1]-dx, p[0]+dx, p[1]+dx]
-                            draw.ellipse(xy,fill=None,outline='red',width=1)        
-
-                    img = imp[0].convert("RGB")   # 通过convert将RGBA格式转化为RGB格式，以便后续处理 
-                    #print("img.size=",img.size)
-                    img = numpy.array(img)        # im还不是数组格式，通过此方法将img转化为数组
-                    images.append(img) 
-
-                imageio.mimsave(filep, images, 'GIF', duration=2/int(WindX['GIF_FPS_Str']))
-
-                #verify image file
-                if os.path.exists(filep):
-                    print("optimize: ", filep)
-                    WindX['e_ImageCateched'].config(text="optimizing: " + os.path.basename(filep) + " ... ...",fg='#009900')
-                    WindX['main'].update()                    
-                    GIF_File_Optimize(filep)
-
-                    if os.path.exists(filep + ".o.gif"):
-                        os.unlink(filep)
-                        WindX['e_ImageCateched'].config(text= "Saved: " + os.path.basename(filep + ".o.gif"),fg='#009900')
-                    else:
-                        WindX['e_ImageCateched'].config(text= "Saved: " + os.path.basename(filep),fg='#009900')                    
-                else:
-                    WindX['e_ImageCateched'].config(text="Failed to save image!",fg='red')
-                    WindX['ImageOrderLastSub'] -=1
-            except:
-                print(traceback.format_exc())
-
-        WindX['GIF_Frames'] = []        
-        DisplayRecordArea(sizes, xys, color_index=0, isClosed=True)
+        WindX['GIF_Frames'] = []       
         WindX['e_snip_gif'].config(fg='red')
         StatusHide_Delay()
         return 1
@@ -469,7 +485,7 @@ def GIF_Make(sizes=[0, 0], xys=[0, 0], checkOnly=False):
     GetPara()
     WindX['GIF_Frames'] = []
     WindX['GIF_recording'] = True
-
+    
     p = threading.Thread(target=GIF_Make_GO, args=[sizes, xys])
     p.start()
 
@@ -495,13 +511,16 @@ def GIF_Make_GO(sizes=[0, 0], xys=[0, 0]):
     WindX['mouse_move_points']  = []
 
     lastMPS = []
+    DisplayRecordArea(sizes, xys, color_index=0, isClosed=True)
     while WindX['GIF_recording']:
         if n==0 or n%fps==0:
             DisplayRecordArea(sizes, xys, color_index)
             WindX['e_snip_gif'].config(fg= penColors[color_index])        
-            WindX['e_ImageCateched'].config(text="making GIF " + usedTime(stime) + " (" + str(len(WindX['GIF_Frames'])) + "), click [GIF] to stop", fg=penColors[color_index])
+            WindX['e_ImageCateched'].config(text="recording GIF " + usedTime(stime) + " (" + str(len(WindX['GIF_Frames'])) + "), click [GIF] to stop", fg=penColors[color_index])
+            WindX['toplevel_lines_label'].config(text="recording GIF " + usedTime(stime) + " (" + str(len(WindX['GIF_Frames'])) + ")", fg=penColors[color_index])
             WindX['main'].update()
             lastMPS = []
+            StatusShow(1)
 
         im,err = ScreenShotXY(
             width =int(sizes[0]),
@@ -541,7 +560,81 @@ def GIF_Make_GO(sizes=[0, 0], xys=[0, 0]):
         time.sleep(tfps)
         n +=1
 
+def ToplevelLine(x,y,width,height,color):
+    tl = Toplevel()
+    tl.wm_attributes('-topmost',1) 
+    canvas = Canvas(tl,
+            width = width,
+            height= height,
+            bg= color,
+            relief=FLAT,
+            bd = 0,
+            )
+    canvas.configure(highlightthickness = 0)
+    canvas.pack()
+
+    tl.geometry('+'+ str(x) +'+' + str(y))
+    tl.overrideredirect(1)
+
+    WindX['toplevel_lines'].append([tl,canvas])
+
 def DisplayRecordArea(sizes, xys, color_index=0, isClosed=False):
+    try:
+        if isClosed:
+            if len(WindX['toplevel_lines']):
+                for tl in WindX['toplevel_lines']:
+                    try:
+                        tl[0].destroy()
+                    except:
+                        pass
+            WindX['toplevel_lines'] = []
+            WindX['toplevel_lines_label'] = None
+            return
+
+        penColors = ["red","blue","green"]
+
+        if len(WindX['toplevel_lines']):
+            for tl in WindX['toplevel_lines']:
+                try:
+                    tl[1].configure(bg = penColors[color_index])
+                except:
+                    pass
+
+            return
+
+        x1 = xys[0] - 1 
+        y1 = xys[1] - 1
+        x2 = xys[0] + sizes[0] + 1
+        y2 = xys[1] + sizes[1] + 1
+
+        try:
+            ToplevelLine(x1,y1,sizes[0]+2,1,penColors[color_index])
+            ToplevelLine(x1,y2,sizes[0]+2,1,penColors[color_index])
+
+            ToplevelLine(x1,y1,1,sizes[1]+2,penColors[color_index])
+            ToplevelLine(x2,y1,1,sizes[1]+2,penColors[color_index])
+
+            tl = Toplevel()
+            tl.wm_attributes('-topmost',1) 
+            frm = Frame(tl)
+            frm.grid(row=1,column=0,sticky=W,pady=0,padx=0)
+
+            iButton(frm,0,1,lambda:SetWindow("snip_gif"),'Stop','red',msg='Stop to record GIF',p=[LEFT,FLAT,3,3,'#FFFF66','#FFFF99',10,E+W+N+S,1,1])
+            label = Label(frm, text='', justify=LEFT, relief=FLAT,pady=3, padx=3, fg='red')
+            label.grid(row=0, column=2, sticky=W+N+S,pady=1,padx=1)            
+
+            tl.geometry('+'+ str(x1) +'+' + str(y2))
+            tl.overrideredirect(1)
+
+            WindX['toplevel_lines'].append([tl,frm])
+            WindX['toplevel_lines_label'] = label
+
+        except:
+            print(traceback.format_exc())
+    except:
+        print(traceback.format_exc())
+
+    '''
     try:
         try:
             if WindX['wx_screen']:
@@ -555,8 +648,6 @@ def DisplayRecordArea(sizes, xys, color_index=0, isClosed=False):
 
         if isClosed:
             return
-
-        penColors = ["red","blue","green"]
 
         penColors = ["red","blue","green"]
 
@@ -580,11 +671,11 @@ def DisplayRecordArea(sizes, xys, color_index=0, isClosed=False):
             print(traceback.format_exc())
     except:
         print(traceback.format_exc())
+    '''
 
 def SetWindow(todo=None): 
     if todo == "snip_gif":
-        if GIF_Make(checkOnly=True):
-            StatusShow(1)
+        if GIF_Make(checkOnly=True):            
             return
 
     DelayCheck()
@@ -667,7 +758,9 @@ def ScreenShotXY(width=0,height=0,xSrc=None,ySrc=None):
     return im_PIL,err
 
 class cButton:
-    def __init__(self,obj,text='',cmd=None,rs=[],ts=[]):
+    def __init__(self,obj,text='',cmd=None,rs=[],ts=[], tip=''):
+        self.tip = tip
+        self.obj = obj
         self.canvas = obj.canvas
         self.rect_outlineColor = rs[5]
         self.button_bg  = self.canvas.create_rectangle(rs[0],rs[1],rs[2],rs[3],fill=rs[4],outline=rs[5],width=rs[6])
@@ -695,9 +788,12 @@ class cButton:
 
     def cMotion(self,event):
         self.canvas.itemconfig(self.button_bg,outline='red')
+        if self.tip:
+            self.obj.top.title(self.tip)
 
     def cLeave(self,event):
         self.canvas.itemconfig(self.button_bg,outline=self.rect_outlineColor)
+        self.obj.top.title("Screen Catch")
 
 class TopCanvas:
     def __init__(self,sizes,xys,im,todo=None,titleOn=False):
@@ -722,29 +818,28 @@ class TopCanvas:
         self.topTempTextMousePoints = []
         self.canvas_height_offset = 0
         self.topInputTextFontSize = 15
+        self.insert_image_do = 0
+        self.insert_img = []
+        self.imkks = []
 
         if titleOn:
             self.canvas_height_offset = 41
 
         WindX['newRect'] = ""
 
-        if WindX['Toplevel']:
-            print('close: Toplevel=',WindX['Toplevel'])
-            WindX['Toplevel'].destroy()
-
         if self.todo == 'snip' or self.todo == 'snip_edit' or self.todo == 'snip_gif':
             self.top = Toplevel(cursor='tcross')
         else:
             self.top = Toplevel()
 
-        WindX['Toplevel'] = self.top
-        #print('new: Toplevel=',WindX['Toplevel']) 
+        WindX['Toplevels'].append(self.top)
+
         print('\nnew toplevel size, x,y:',sizes, xys)
         self.top.wm_attributes('-topmost',1) 
         
         wind_width = sizes[0]
         if self.todo == 'edit' and wind_width < 9*42:   
-            wind_width = 9*42
+            wind_width = 10*42
 
         if not titleOn:
             self.top.overrideredirect(1)                
@@ -778,7 +873,7 @@ class TopCanvas:
         #cButton(self,'',self.TDBX,  [0, 0, 480, 40,'#FEFEFE',"#FEFEFE",1],[30, 30,'red',("Arial",20,"bold")])
         fsize = 20
         ftop = int(fsize*1.33 /2 + 2)
-        cButton(self,'XClose',self.Close,[0, 0, 40, 40,'#E0E0E0',"#E0E0E0" ,1],[20, ftop,'red',("Arial",20,"bold")])
+        cButton(self,'XClose',self.Close,[0, 0, 40, 40,'#E0E0E0',"#E0E0E0" ,1],[20, ftop,'red',("Arial",20,"bold")], tip='Close this window')
 
         self.is_draw_rectangle = 1
         self.is_draw_addText = 0
@@ -801,35 +896,39 @@ class TopCanvas:
                             )
             '''            
         elif self.todo == 'edit':      
-            cButton(self,'',self.OutLineColor1,[41, 0, 61, 20,'red',"red",1])
-            cButton(self,'',self.OutLineColor2,[61, 0, 81, 20,'green',"green",1])
-            cButton(self,'',self.OutLineColor3,[41, 20, 61, 40,'black',"black",1])
-            cButton(self,'',self.OutLineColor4,[61, 20, 81, 40,'yellow',"yellow",1])
+            cButton(self,'',self.OutLineColor1,[41, 0, 61, 20,'red',"red",1], tip='Select red color')
+            cButton(self,'',self.OutLineColor2,[61, 0, 81, 20,'green',"green",1], tip='Select green color')
+            cButton(self,'',self.OutLineColor3,[41, 20, 61, 40,'black',"black",1], tip='Select black color')
+            cButton(self,'',self.OutLineColor4,[61, 20, 81, 40,'yellow',"yellow",1], tip='Select yellow color')
             
             px = 82
-            cb = cButton(self,'RRect',self.AddRectangle,[px, 0, px+40, 40,'#00CC99',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")])
+            cb = cButton(self,'RRect',self.AddRectangle,[px, 0, px+40, 40,'#00CC99',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")], tip='Draw rectangle')
             self.button_rect_bg  = cb.button_bg
 
             px += 41
-            cb = cButton(self,'LLine',self.AddLine,  [px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")])
+            cb = cButton(self,'LLine',self.AddLine,  [px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")], tip='Draw line')
             self.button_addLine_bg  = cb.button_bg
 
             px += 41
-            cb = cButton(self,'TText',self.AddText,  [px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")])
+            cb = cButton(self,'TText',self.AddText,  [px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")], tip='Set text')
             self.button_addText_bg  = cb.button_bg
 
             px += 41
-            cb = cButton(self,'UUndo',self.Undo,     [px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'gray',("Arial",fsize,"normal")])
+            cb = cButton(self,'UUndo',self.Undo,     [px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'gray',("Arial",fsize,"normal")], tip='Undo')
             self.button_delLast_txt = cb.button_txt 
 
             px += 41
-            cButton(self,'SSave',self.Save,          [px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")])
+            cButton(self,'SSave',self.Save,          [px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")], tip='Save')
 
             px += 41
-            cButton(self,'CCopy',  self.Copy2Clipboard,[px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")])
+            cButton(self,'CCopy',  self.Copy2Clipboard,[px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")], tip='Copy to clipboard')
 
             px += 41
-            cButton(self,'BBase64',self.Copy2ClipboardBase64,[px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")])
+            cButton(self,'BBase64',self.Copy2ClipboardBase64,[px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")], tip='Copy to clipboard with HTML base64 format')
+
+            px += 41
+            cb = cButton(self,'IInsert',self.InsertImage,[px, 0, px+40, 40,'#E0E0E0',"#E0E0E0",1],[px+20, ftop,'blue',("Arial",fsize,"normal")], tip='Insert image from clipboard')
+            self.button_insert_bg = cb.button_bg
 
         self.top.mainloop()
 
@@ -840,6 +939,37 @@ class TopCanvas:
         for b in self.buttons:
             self.canvas.itemconfigure(b, state=istate)
         self.top.update()
+
+    def InsertImage(self, event):
+        #check if there's image data in clicpboard  
+        self.insert_image_do = 0   
+        self.is_draw_line = 0
+        self.is_draw_rectangle = 0
+        self.is_draw_addText = 0 
+        self.insert_img = []
+        try:
+            win32clipboard.OpenClipboard() #打开剪贴板
+            #
+            #im.convert("RGB").save(output, "BMP")
+            #data = output.getvalue()[14:]
+            #output.close()
+            data = win32clipboard.GetClipboardData(win32con.CF_DIB)
+            if data:
+                cf= BytesIO(data)  
+                cim = Image.open(cf)  
+                self.insert_img = numpy.array(cim)
+                self.insert_image_do = 1
+                cf.close()
+            else:
+                messagebox.showwarning(title='Warning', message='No image in the clicpboard!')
+            
+            win32clipboard.CloseClipboard()
+        except:            
+            win32clipboard.CloseClipboard()
+            messagebox.showwarning(title='Warning', message='No image in the clicpboard!')
+            print(traceback.format_exc())             
+            
+        self.ButtonBG()
 
     def Copy2ClipboardBase64(self,event):
         self.Copy2Clipboard(event,p='base64')
@@ -951,6 +1081,8 @@ class TopCanvas:
         self.ButtonBG()  
 
     def ButtonBG(self):
+        self.top.configure(cursor='arrow')
+
         if self.is_draw_rectangle:
             self.canvas.itemconfig(self.button_rect_bg,fill='#00CC99')
         else:
@@ -965,6 +1097,12 @@ class TopCanvas:
             self.canvas.itemconfig(self.button_addLine_bg,fill='#00CC99')
         else:
             self.canvas.itemconfig(self.button_addLine_bg,fill='#E0E0E0')
+
+        if self.insert_image_do:
+            self.top.configure(cursor='tcross')
+            self.canvas.itemconfig(self.button_insert_bg,fill='#00CC99')
+        else:
+            self.canvas.itemconfig(self.button_insert_bg,fill='#E0E0E0')
 
     def TextInputView(self,event):
         if self.topTempText:
@@ -1084,6 +1222,47 @@ class TopCanvas:
                 self.drawn_line = None
                 self.rectangle  = None
 
+            elif self.insert_image_do and self.rectangle and self.insert_img.any():
+                self.canvas.delete(self.rectangle)
+                tw = abs(self.mouse_xs - self.mouse_xe)
+                th = abs(self.mouse_ys - self.mouse_ye)
+                if tw > 5 and th > 5:
+                    '''
+                    rect = self.canvas.create_rectangle(
+                                        self.mouse_xs,
+                                        self.mouse_ys,
+                                        self.mouse_xe,
+                                        self.mouse_ye,
+                                        outline = self.outline_color,
+                                        width= 2,
+                                        )
+                    self.Items.append(rect)
+                    '''
+                    img = Image.fromarray(self.insert_img.astype('uint8'))
+                    size = img.size
+                    r1 = tw / size[0]
+                    r2 = th / size[1]
+                    r = 1
+                    if r1 > r2:
+                        r = r2
+                    else:
+                        r = r1
+                    if r > 1:
+                        r = 1                        
+                    if not (r == 1):                        
+                        img = img.resize((int(size[0]*r), int(size[1]*r)))
+                    #print("size:",img.size, ", format:", img.format, ', to size:', tw, th)
+                    #img.show()
+                    imkk = ImageTk.PhotoImage(img)             
+                    iim = self.canvas.create_image(int((self.mouse_xs + self.mouse_xe)/2),int((self.mouse_ys + self.mouse_ye)/2) ,image = imkk)
+                    self.imkks.append([iim,imkk])
+                    self.Items.append(iim)
+
+                self.insert_image_do = 0
+                self.insert_img = []
+                self.ButtonBG()
+                #print('insert image #', iim)
+
             if len(self.Items):
                 self.canvas.itemconfig(self.button_delLast_txt,fill='blue')
             else:
@@ -1144,7 +1323,7 @@ class TopCanvas:
             self.canvas.delete(self.tip)
             self.tip = None
         if self.is_mousedown:
-            if self.is_draw_rectangle or self.todo == 'snip' or self.is_draw_addText or self.is_draw_line:
+            if self.is_draw_rectangle or self.todo == 'snip' or self.is_draw_addText or self.is_draw_line or self.insert_image_do:
                 if self.rectangle:
                     self.canvas.delete(self.rectangle)
                 
@@ -1314,7 +1493,7 @@ def ShowMainWindow(toShow):
         #WindX['LastGeometry'] = re.split(r'x|\+', WindX['main'].geometry()) #506x152+-1418+224
         #WindX['main'].geometry('+'+ str(WindX['LastGeometry'][2]) +'+-' + str(WindX['LastGeometry'][1]))
         WindX['main'].withdraw()
-        time.sleep(0.5)
+        time.sleep(0.2)
 
 def GUI(IsInit=None):
     if IsInit:
@@ -1528,7 +1707,7 @@ def MouseListener():
         listener.join()
 
 def main():   
-    WindX['Toplevel'] = None  
+    WindX['Toplevels'] = []  
     WindX['BoxTopLevel'] = None    
     WindX['ImageOrderLastSub'] = 1
     WindX['ImageOrderLast'] =  0  
@@ -1551,6 +1730,8 @@ def main():
     WindX['GIF_recording'] = False
     WindX['GIF_FPS_Str'] = 5
     WindX['LastGeometry'] = []
+    WindX['toplevel_lines'] = []
+    WindX['toplevel_lines_label'] = None
 
     t1 = threading.Timer(1,MouseListener)
     t1.start() 
